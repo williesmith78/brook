@@ -5,18 +5,11 @@
 [![Build Status](https://travis-ci.org/txthinking/brook.svg?branch=master)](https://travis-ci.org/txthinking/brook)
 [![开源协议: GPL v3](https://img.shields.io/badge/%E5%BC%80%E6%BA%90%E5%8D%8F%E8%AE%AE-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
 [![捐赠](https://img.shields.io/badge/%E6%94%AF%E6%8C%81-%E6%8D%90%E8%B5%A0-ff69b4.svg)](https://github.com/sponsors/txthinking)
-
-| 🌚 | 🌝 |
-| --- | --- |
-| 必读 | https://txthinking.github.io/brook/#/zh-cn/README |
-| 安装 CLI | https://txthinking.github.io/brook/#/zh-cn/install-cli |
-| 安装 GUI (macOS, Windows, iOS, Android, OpenWrt) | https://txthinking.github.io/brook/#/zh-cn/install-gui-client |
-| OpenWrt CLI | https://txthinking.github.io/brook/#/zh-cn/brook-tproxy |
-| 📹 | ✍️ |
-| Blog | https://talks.txthinking.com |
-| Youtube | https://www.youtube.com/txthinking |
-| 论坛 | https://github.com/txthinking/brook/discussions |
-| Telegram 频道 | https://t.me/brookchannel |
+[![Talks](https://img.shields.io/badge/talks-txthinking-blue.svg)](https://talks.txthinking.com)
+[![Youtube](https://img.shields.io/badge/Youtube-@txthinking-blue.svg)](https://www.youtube.com/txthinking)
+[![Document](https://img.shields.io/badge/github.io-Document-blue.svg)](https://txthinking.github.io/brook/)
+[![Telegram](https://img.shields.io/badge/telegram-@txthinking_talks-blue.svg)](https://t.me/txthinking_talks)
+[![Telegram](https://img.shields.io/badge/telegram-@brookgroup-blue.svg)](https://t.me/brookgroup)
 
 ---
 
@@ -26,25 +19,37 @@ Brook 是一个跨平台的强加密无特征的代理软件. 偏爱 KISS 哲学
 
 ❤️ A project by [txthinking.com](https://www.txthinking.com)
 
-### 安装 CLI (命令行版本)
+### 通过 curl 安装 CLI (命令行版本), 并运行 `brook wserver`
 
 ```
 curl -L https://github.com/txthinking/brook/releases/latest/download/brook_linux_amd64 -o /usr/bin/brook
 chmod +x /usr/bin/brook
+brook server --listen :9999 --password hello
 ```
 
-### [推荐] 通过 [nami](https://github.com/txthinking/nami) 安装 CLI, 并通过 [joker](https://github.com/txthinking/joker) 运行 `brook wswserver`
+> 然后, 你的 `brook server` 是 `YOUR_SERVER_IP:9999`, 密码是 `password`
 
-> 😘 只需复制这四行命令粘贴即可, 你可以称此为**💛一键脚本💛**
+### 通过 curl 安装 CLI (命令行版本) 和 [joker](https://github.com/txthinking/joker), 并用 [joker](https://github.com/txthinking/joker) 运行 `brook wserver`
 
 ```
-curl -L https://git.io/getnami | bash && sleep 3 && exec -l $SHELL
-nami install github.com/txthinking/joker
-nami install github.com/txthinking/brook
-joker brook wsserver --listen :9999 --password hello
+curl -L https://github.com/txthinking/joker/releases/latest/download/joker_linux_amd64 -o /usr/bin/joker
+chmod +x /usr/bin/joker
+curl -L https://github.com/txthinking/brook/releases/latest/download/brook_linux_amd64 -o /usr/bin/brook
+chmod +x /usr/bin/brook
+joker brook server --listen :9999 --password hello
 ```
 
-> 然后, 你的 `brook wsserver` 是 `ws://YOUR_SERVER_IP:9999`, 密码是 `password`
+> 然后, 你的 `brook server` 是 `YOUR_SERVER_IP:9999`, 密码是 `password`
+
+### 通过 [nami](https://github.com/txthinking/nami) 安装 CLI, 并通过 [joker](https://github.com/txthinking/joker) 运行 `brook wserver`
+
+```
+curl -L https://raw.githubusercontent.com/txthinking/nami/master/install.sh | bash && sleep 3 && exec -l $SHELL
+nami install joker brook
+joker brook server --listen :9999 --password hello
+```
+
+> 然后, 你的 `brook server` 是 `YOUR_SERVER_IP:9999`, 密码是 `password`
 
 [查看文档](https://txthinking.github.io/brook/#/zh-cn/install-cli)
 
