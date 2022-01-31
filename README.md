@@ -4,12 +4,13 @@
 
 [![Build Status](https://travis-ci.org/txthinking/brook.svg?branch=master)](https://travis-ci.org/txthinking/brook)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
-[![Donate](https://img.shields.io/badge/Support-Donate-ff69b4.svg)](https://github.com/sponsors/txthinking)
-[![Talks](https://img.shields.io/badge/talks-txthinking-blue.svg)](https://talks.txthinking.com)
-[![Youtube](https://img.shields.io/badge/Youtube-@txthinking-blue.svg)](https://www.youtube.com/txthinking)
-[![Document](https://img.shields.io/badge/github.io-Document-blue.svg)](https://txthinking.github.io/brook/)
-[![Telegram](https://img.shields.io/badge/telegram-@txthinking_talks-blue.svg)](https://t.me/txthinking_talks)
-[![Telegram](https://img.shields.io/badge/telegram-@brookgroup-blue.svg)](https://t.me/brookgroup)
+
+[📜 Document](https://txthinking.github.io/brook/)
+[🤝 Telegram](https://t.me/brookgroup)
+[🗣 Talks](https://t.me/txthinking_talks)
+[💬 Join](https://join.txthinking.com)
+[🩸 Youtube](https://www.youtube.com/txthinking) 
+[❤️ Sponsor](https://github.com/sponsors/txthinking)
 
 ---
 
@@ -30,7 +31,7 @@ brook server --listen :9999 --password hello
 
 > Then, your `brook server` is `YOUR_SERVER_IP:9999`, password is `hello`
 
-### OR install CLI and [joker](https://github.com/txthinking/joker) via curl, and run `brook server` with [joker](https://github.com/txthinking/joker)
+### Install CLI and [joker](https://github.com/txthinking/joker) via curl, and run `brook server` with [joker](https://github.com/txthinking/joker)
 
 ```
 curl -L https://github.com/txthinking/joker/releases/latest/download/joker_linux_amd64 -o /usr/bin/joker
@@ -42,15 +43,21 @@ joker brook server --listen :9999 --password hello
 
 > Then, your `brook server` is `YOUR_SERVER_IP:9999`, password is `hello`
 
-### OR install CLI via [nami](https://github.com/txthinking/nami), and run `brook server` with [joker](https://github.com/txthinking/joker)
+### Install CLI via [nami](https://github.com/txthinking/nami), and run `brook server` with [joker](https://github.com/txthinking/joker)
 
 ```
-curl -L https://raw.githubusercontent.com/txthinking/nami/master/install.sh | bash && sleep 3 && exec -l $SHELL
+bash <(curl https://bash.ooo/nami.sh)
 nami install joker brook
 joker brook server --listen :9999 --password hello
 ```
 
 > Then, your `brook server` is `YOUR_SERVER_IP:9999`, password is `hello`
+
+### Install via script
+
+```
+bash <(curl https://bash.ooo/brook.sh)
+```
 
 [Read Document](https://txthinking.github.io/brook/#/install-cli)
 

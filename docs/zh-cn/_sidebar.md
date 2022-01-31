@@ -64,16 +64,10 @@
 
     -   [IPv6](ipv6.md)
 
--   资源
-
-    -   [Bypass 規則](bypass.md)
-    -   [一键脚本](installscript.md)
-    -   [博客和视频](blogvideo.md)
-    -   [论坛](community.md)
-    -   [Telegram](telegram.md)
-
 -   协议
 
     -   [brook server](brook-server-protocol.md)
     -   [brook wsserver](brook-wsserver-protocol.md)
     -   [brook wssserver](brook-wssserver-protocol.md)
+
+-   [**资源**](resources.md)
