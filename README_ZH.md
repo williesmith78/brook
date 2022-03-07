@@ -7,10 +7,14 @@
 
 [📜 Document](https://txthinking.github.io/brook/)
 [🤝 Telegram](https://t.me/brookgroup)
-[🗣 Talks](https://t.me/txthinking_talks)
-[💬 Join](https://join.txthinking.com)
-[🩸 Youtube](https://www.youtube.com/txthinking) 
+[🗣 News](https://t.me/txthinking_news)
+[💬 Chat](https://join.txthinking.com)
+[🩸 Youtube](https://www.youtube.com/txthinking)
 [❤️ Sponsor](https://github.com/sponsors/txthinking)
+
+---
+
+🎉 v20220404 [更新日志->](https://github.com/txthinking/brook/releases/tag/v20220404)
 
 ---
 
@@ -20,45 +24,40 @@ Brook 是一个跨平台的强加密无特征的代理软件. 偏爱 KISS 哲学
 
 ❤️ A project by [txthinking.com](https://www.txthinking.com)
 
-### 通过 curl 安装 CLI (命令行版本), 并运行 `brook wserver`
+### 安装 CLI
 
-```
-curl -L https://github.com/txthinking/brook/releases/latest/download/brook_linux_amd64 -o /usr/bin/brook
-chmod +x /usr/bin/brook
-brook server --listen :9999 --password hello
-```
+1. 安装 nami
 
-> 然后, 你的 `brook server` 是 `YOUR_SERVER_IP:9999`, 密码是 `password`
+    > [nami](https://github.com/txthinking/nami) 会自动下载对应你系统的命令<br/>
+    > 如果你的系统不是 Linux, MacOS, Windows, 你可以直接在 [release](https://github.com/txthinking/brook/releases) 页面下载
 
-### 通过 curl 安装 CLI (命令行版本) 和 [joker](https://github.com/txthinking/joker), 并用 [joker](https://github.com/txthinking/joker) 运行 `brook wserver`
+    ```
+    bash <(curl https://bash.ooo/nami.sh)
+    ```
 
-```
-curl -L https://github.com/txthinking/joker/releases/latest/download/joker_linux_amd64 -o /usr/bin/joker
-chmod +x /usr/bin/joker
-curl -L https://github.com/txthinking/brook/releases/latest/download/brook_linux_amd64 -o /usr/bin/brook
-chmod +x /usr/bin/brook
-joker brook server --listen :9999 --password hello
-```
+2. 安装 brook, joker
 
-> 然后, 你的 `brook server` 是 `YOUR_SERVER_IP:9999`, 密码是 `password`
+    > [joker](https://github.com/txthinking/joker) 可以将进程变成守护进程.
 
-### 通过 [nami](https://github.com/txthinking/nami) 安装 CLI, 并通过 [joker](https://github.com/txthinking/joker) 运行 `brook wserver`
+    ```
+    nami install brook joker
+    ```
 
-```
-bash <(curl https://bash.ooo/nami.sh)
-nami install joker brook
-joker brook server --listen :9999 --password hello
-```
+3. 运行 `brook server`
 
-> 然后, 你的 `brook server` 是 `YOUR_SERVER_IP:9999`, 密码是 `password`
+    ```
+    joker brook server --listen :9999 --password hello
+    ```
+
+> 然后, 你的 `brook server` 是 `YOUR_SERVER_IP:9999`, 密码是 `hello`
+
+了解更多请阅读[文档](https://txthinking.github.io/brook/#/install-cli)
 
 ### 通过一键脚本
 
 ```
 bash <(curl https://bash.ooo/brook.sh)
 ```
-
-[查看文档](https://txthinking.github.io/brook/#/zh-cn/install-cli)
 
 ### 安装 GUI (图形客户端)
 
@@ -72,9 +71,6 @@ NAME:
 
 USAGE:
    brook [global options] command [command options] [arguments...]
-
-VERSION:
-   20210701
 
 AUTHOR:
    Cloud <cloud@txthinking.com>
@@ -90,7 +86,6 @@ COMMANDS:
    dns             Run as dns server over brook, both TCP and UDP, [src <-> brook dns <-> brook server/wsserver/wssserver <-> dns] or [src <-> brook dns <-> dnsForBypass]
    tproxy          Run as transparent proxy, both TCP and UDP, only works on Linux, [src <-> brook tproxy <-> brook server/wsserver/wssserver <-> dst]
    link            Print brook link
-   qr              Print brook server QR code
    connect         Connect via standard sharing link (brook server & brook wsserver & brook wssserver)
    relay           Run as standalone relay, both TCP and UDP, this means access [from address] is equal to access [to address], [src <-> from address <-> to address]
    socks5          Run as standalone standard socks5 server, both TCP and UDP
@@ -114,10 +109,6 @@ COPYRIGHT:
 ```
 
 [文档](https://txthinking.github.io/brook/#/zh-cn/)
-
-## 贡献
-
-请先阅读 [CONTRIBUTING.md](https://github.com/txthinking/brook/blob/master/.github/CONTRIBUTING.md)
 
 ## 开源协议
 

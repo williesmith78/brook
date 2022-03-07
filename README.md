@@ -7,10 +7,14 @@
 
 [📜 Document](https://txthinking.github.io/brook/)
 [🤝 Telegram](https://t.me/brookgroup)
-[🗣 Talks](https://t.me/txthinking_talks)
-[💬 Join](https://join.txthinking.com)
-[🩸 Youtube](https://www.youtube.com/txthinking) 
+[🗣 News](https://t.me/txthinking_news)
+[💬 Chat](https://join.txthinking.com)
+[🩸 Youtube](https://www.youtube.com/txthinking)
 [❤️ Sponsor](https://github.com/sponsors/txthinking)
+
+---
+
+🎉 v20220404 [Changelog->](https://github.com/txthinking/brook/releases/tag/v20220404)
 
 ---
 
@@ -21,45 +25,40 @@ Brook's goal is to keep it **simple**, **stupid** and **not detectable**.
 
 ❤️ A project by [txthinking.com](https://www.txthinking.com)
 
-### Install CLI via curl, and run `brook server`
+### Install CLI
 
-```
-curl -L https://github.com/txthinking/brook/releases/latest/download/brook_linux_amd64 -o /usr/bin/brook
-chmod +x /usr/bin/brook
-brook server --listen :9999 --password hello
-```
+1. install nami
 
-> Then, your `brook server` is `YOUR_SERVER_IP:9999`, password is `hello`
+    > [nami](https://github.com/txthinking/nami) will automatically download the command corresponding to your system<br/>
+    > If your system is not Linux, MacOS, Windows, you can download it directly on the [release](https://github.com/txthinking/brook/releases) page
 
-### Install CLI and [joker](https://github.com/txthinking/joker) via curl, and run `brook server` with [joker](https://github.com/txthinking/joker)
+    ```
+    bash <(curl https://bash.ooo/nami.sh)
+    ```
 
-```
-curl -L https://github.com/txthinking/joker/releases/latest/download/joker_linux_amd64 -o /usr/bin/joker
-chmod +x /usr/bin/joker
-curl -L https://github.com/txthinking/brook/releases/latest/download/brook_linux_amd64 -o /usr/bin/brook
-chmod +x /usr/bin/brook
-joker brook server --listen :9999 --password hello
-```
+2. install brook, joker
 
-> Then, your `brook server` is `YOUR_SERVER_IP:9999`, password is `hello`
+    > [joker](https://github.com/txthinking/joker) can turn process into daemon
 
-### Install CLI via [nami](https://github.com/txthinking/nami), and run `brook server` with [joker](https://github.com/txthinking/joker)
+    ```
+    nami install brook joker
+    ```
 
-```
-bash <(curl https://bash.ooo/nami.sh)
-nami install joker brook
-joker brook server --listen :9999 --password hello
-```
+3. run `brook server`
+
+    ```
+    joker brook server --listen :9999 --password hello
+    ```
 
 > Then, your `brook server` is `YOUR_SERVER_IP:9999`, password is `hello`
 
-### Install via script
+To learn more please read the [documentation](https://txthinking.github.io/brook/#/install-cli)
+
+### Install via brook.sh
 
 ```
 bash <(curl https://bash.ooo/brook.sh)
 ```
-
-[Read Document](https://txthinking.github.io/brook/#/install-cli)
 
 ### Install GUI
 
@@ -73,9 +72,6 @@ NAME:
 
 USAGE:
    brook [global options] command [command options] [arguments...]
-
-VERSION:
-   20210701
 
 AUTHOR:
    Cloud <cloud@txthinking.com>
@@ -91,7 +87,6 @@ COMMANDS:
    dns             Run as dns server over brook, both TCP and UDP, [src <-> brook dns <-> brook server/wsserver/wssserver <-> dns] or [src <-> brook dns <-> dnsForBypass]
    tproxy          Run as transparent proxy, both TCP and UDP, only works on Linux, [src <-> brook tproxy <-> brook server/wsserver/wssserver <-> dst]
    link            Print brook link
-   qr              Print brook server QR code
    connect         Connect via standard sharing link (brook server & brook wsserver & brook wssserver)
    relay           Run as standalone relay, both TCP and UDP, this means access [from address] is equal to access [to address], [src <-> from address <-> to address]
    socks5          Run as standalone standard socks5 server, both TCP and UDP
@@ -115,10 +110,6 @@ COPYRIGHT:
 ```
 
 [Read Document](https://txthinking.github.io/brook/)
-
-## Contributing
-
-Please read [CONTRIBUTING.md](https://github.com/txthinking/brook/blob/master/.github/CONTRIBUTING.md) first
 
 ## License
 
