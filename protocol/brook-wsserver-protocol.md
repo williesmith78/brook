@@ -1,4 +1,6 @@
-# `brook server` Protocol
+# brook wsserver protocol
+
+<!--G-R3M673HK5V-->
 
 ## Terminology
 
@@ -31,7 +33,7 @@
 ## Client --TCP--> Server
 
 ```
-Client Nonce + [AES_GCM(Fragment Length) + AES_GCM(Fragment)]...
+[Standard WebSocket Protocol Header] + Client Nonce + [AES_GCM(Fragment Length) + AES_GCM(Fragment)]...
 ```
 
 > The maximum length of `AES_GCM(Fragment Length) + AES_GCM(Fragment)` is 2048 bytes
@@ -49,7 +51,7 @@ Client Nonce + [AES_GCM(Fragment Length) + AES_GCM(Fragment)]...
 ## Server --TCP--> Client
 
 ```
-Server Nonce + [AES_GCM(Fragment Length) + AES_GCM(Fragment)]...
+[Standard WebSocket Protocol Header] + Server Nonce + [AES_GCM(Fragment Length) + AES_GCM(Fragment)]...
 ```
 
 > The maximum length of `AES_GCM(Fragment Length) + AES_GCM(Fragment)` is 2048 bytes
@@ -59,34 +61,34 @@ Server Nonce + [AES_GCM(Fragment Length) + AES_GCM(Fragment)]...
 - `Fragment Length`: Big Endian 16-bit unsigned integer
 - `Fragment`: Actual data being proxied
 
-## Client --UDP--> Server
+## Client --UDP(UDP over TCP)--> Server
 
 ```
-Client Nonce + AES_GCM(Fragment)
+[Standard WebSocket Protocol Header] + Client Nonce + [AES_GCM(Fragment Length) + AES_GCM(Fragment)]...
 ```
 
-> The maximum length of `Client Nonce + AES_GCM(Fragment)` is 65507 bytes
+> The maximum length of `AES_GCM(Fragment Length) + AES_GCM(Fragment)` is 65507 bytes, but the maximum length if the first one is 2048 bytes
 
-- `Client Nonce`: 12 bytes, randomly generated each time
-- `Fragment`:
-    ```
-    Unix Timestamp + DST Address + Data
-    ```
-    - [`Unix Timestamp`](https://en.wikipedia.org/wiki/Unix_time): Big Endian 32-bit unsigned integer
-    - `Data`: Actual data being proxied
+- `Client Nonce`: 12 bytes, randomly generated
+    - The nonce should be recalculated when it is not used for the first time, the calculation method: add `1` to the first 8 bytes according to the Little Endian 64-bit unsigned integer
+- `Fragment Length`: Big Endian 16-bit unsigned integer
+- `Fragment`: Actual data being proxied
+    - The first Fragment should be:
+        ```
+        Unix Timestamp + DST Address
+        ```
+        - [`Unix Timestamp`](https://en.wikipedia.org/wiki/Unix_time): If it is not odd, it should be increased by 1. Big Endian 32-bit unsigned integer
 
-
-## Server --UDP--> Client
+## Server --UDP(UDP over TCP)--> Client
 
 ```
-Server Nonce + AES_GCM(Fragment)
+[Standard WebSocket Protocol Header] + Server Nonce + [AES_GCM(Fragment Length) + AES_GCM(Fragment)]...
 ```
 
-> The maximum length of `Server Nonce + AES_GCM(Fragment)` is 65507 bytes
+> The maximum length of `AES_GCM(Fragment Length) + AES_GCM(Fragment)` is 65507 bytes
 
-- `Server Nonce`: 12 bytes, randomly generated each time
-- `Fragment`:
-    ```
-    DST Address + Data
-    ```
-    - `Data`: Actual data being proxied
+- Server Nonce: 12 bytes, randomly generated
+    - The nonce should be recalculated when it is not used for the first time, the calculation method: add `1` to the first 8 bytes according to the Little Endian 64-bit unsigned integer
+- `Fragment Length`: Big Endian 16-bit unsigned integer
+- `Fragment`: Actual data being proxied
+

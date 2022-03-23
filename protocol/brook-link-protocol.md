@@ -1,4 +1,6 @@
-### Brook Link
+# brook link protocol
+
+<!--G-R3M673HK5V-->
 
 ```
 brook://KIND?QUERY
@@ -13,6 +15,7 @@ brook://KIND?QUERY
 -   **QUERY**:
     -   `server`: brook server, such as `1.2.3.4:9999`
     -   `password`: password
+    -   `udpovertcp`: `true` [Optional]
     -   `name`: such as `my server` [Optional]
     -   Any other custom key
 
@@ -75,17 +78,4 @@ Example
 ```
 brook://socks5?socks5=socks5%3A%2F%2F1.2.3.4%3A9999
 brook://socks5?password=world&socks5=socks5%3A%2F%2F1.2.3.4%3A9999&username=hello
-```
-
-### brook link
-
-```
-brook link --server 1.2.3.4:9999 --password password
-brook link --server [2001:4860:4860::8888]:9999 --password password
-brook link --server ws://1.2.3.4:9999 --password password
-brook link --server ws://[2001:4860:4860::8888]:9999 --password password
-brook link --server wss://hello.com:443 --password password --address 1.2.3.4:443 --insecure
-brook link --server socks5://1.2.3.4:1080
-brook link --server socks5://[2001:4860:4860::8888]:1080
-brook link --server socks5://1.2.3.4:1080 --username username --password password
 ```
