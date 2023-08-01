@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# ./build.sh dev
+#
 
 if [ $# -ne 1 ]; then
     echo "./build.sh version"
@@ -34,6 +37,7 @@ CGO_ENABLED=0 GOOS=openbsd GOARCH=386 go build                     -ldflags="-w 
 CGO_ENABLED=0 GOOS=openbsd GOARCH=amd64 go build                   -ldflags="-w -s" -o _/brook_openbsd_amd64 .
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build                   -ldflags="-w -s" -o _/brook_windows_amd64.exe .
 CGO_ENABLED=0 GOOS=windows GOARCH=386 go build                     -ldflags="-w -s" -o _/brook_windows_386.exe .
+CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build                     -ldflags="-w -s" -o _/brook_windows_arm64.exe .
 
 cd ../../ipk
 

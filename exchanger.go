@@ -19,15 +19,21 @@ import (
 )
 
 type Exchanger interface {
+	Network() string
+	Src() string
+	Dst() string
 	Exchange(remote net.Conn) error
-	NetworkName() string
 	Clean()
-	SetTimeout(int)
 }
 
-func MakeStreamServer(password []byte, c net.Conn, timeout int, withoutbrook bool) (Exchanger, []byte, error) {
-	if !withoutbrook {
-		return NewStreamServer(password, c, timeout)
-	}
-	return NewSimpleStreamServer(password, c, timeout)
+type UDPServerConnFactory interface {
+	Handle(addr *net.UDPAddr, b, p []byte, w func([]byte) (int, error), timeout int) (net.Conn, []byte, error)
+}
+
+var ServerGate func(ex Exchanger) (Exchanger, error) = func(ex Exchanger) (Exchanger, error) {
+	return ex, nil
+}
+
+var ClientGate func(ex Exchanger) (Exchanger, error) = func(ex Exchanger) (Exchanger, error) {
+	return ex, nil
 }

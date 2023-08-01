@@ -19,30 +19,14 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 
 	cache "github.com/patrickmn/go-cache"
+	"github.com/phuslu/iploc"
 )
-
-func BlockAddress(address string, ds map[string]byte, c4, c6 []*net.IPNet, c *cache.Cache) bool {
-	if ds == nil && c4 == nil && c6 == nil {
-		return false
-	}
-	h, _, err := net.SplitHostPort(address)
-	if err != nil {
-		log.Println(err)
-		return false
-	}
-	i := net.ParseIP(h)
-	if i == nil {
-		return ListHasDomain(ds, h, c)
-	}
-	return ListHasIP(c4, c6, i, c)
-}
 
 func ListHasDomain(ds map[string]byte, domain string, c *cache.Cache) bool {
 	if ds == nil {
@@ -75,14 +59,28 @@ func ListHasDomain(ds map[string]byte, domain string, c *cache.Cache) bool {
 	return false
 }
 
-func ListHasIP(c4, c6 []*net.IPNet, i net.IP, c *cache.Cache) bool {
-	if c4 == nil && c6 == nil {
+func ListHasIP(c4, c6 []*net.IPNet, i net.IP, c *cache.Cache, geo []string) bool {
+	if c4 == nil && c6 == nil && len(geo) == 0 {
 		return false
 	}
 	if c != nil {
 		any, ok := c.Get(i.String())
 		if ok {
 			return any.(bool)
+		}
+	}
+	if len(geo) != 0 {
+		b := iploc.Country(i)
+		if b != nil {
+			bs := string(b)
+			for _, v := range geo {
+				if v == bs {
+					if c != nil {
+						c.Set(i.String(), true, 24*time.Hour)
+					}
+					return true
+				}
+			}
 		}
 	}
 	if i.To4() != nil {
@@ -140,7 +138,7 @@ func ReadCIDRList(url string) ([]*net.IPNet, error) {
 	for _, v := range l {
 		_, in, err := net.ParseCIDR(v)
 		if err != nil {
-			log.Println("net.ParseCIDR", v, err)
+			Log(Error{"when": "net.ParseCIDR", "cidr": v, "error": err.Error()})
 			continue
 		}
 		c = append(c, in)
@@ -156,34 +154,25 @@ func ReadList(url string) ([]string, error) {
 			Timeout: 9 * time.Second,
 			Transport: &http.Transport{
 				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-					r := &net.Resolver{
-						Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-							c, err := net.Dial(network, "8.8.8.8:53")
-							if err != nil {
-								c, err = net.Dial(network, "[2001:4860:4860::8888]:53")
-							}
-							return c, err
-						},
-					}
 					h, p, err := net.SplitHostPort(addr)
 					if err != nil {
 						return nil, err
 					}
-					l, err := r.LookupIP(ctx, "ip4", h)
-					if err == nil && len(l) > 0 {
-						c, err := net.Dial(network, net.JoinHostPort(l[0].String(), p))
+					s, err := Resolve6(h)
+					if err == nil {
+						c, err := net.Dial(network, net.JoinHostPort(s, p))
 						if err == nil {
 							return c, nil
 						}
 					}
-					l, err = r.LookupIP(ctx, "ip6", h)
-					if err == nil && len(l) > 0 {
-						c, err := net.Dial(network, net.JoinHostPort(l[0].String(), p))
+					s, err = Resolve4(h)
+					if err == nil {
+						c, err := net.Dial(network, net.JoinHostPort(s, p))
 						if err == nil {
 							return c, nil
 						}
 					}
-					return nil, errors.New("Can not fetch " + addr + ", maybe dns or network error")
+					return nil, errors.New("Can not fetch " + addr)
 				},
 			},
 		}
@@ -208,4 +197,53 @@ func ReadList(url string) ([]string, error) {
 	data = bytes.Replace(data, []byte{0x0d, 0x0a}, []byte{0x0a}, -1)
 	ss := strings.Split(string(data), "\n")
 	return ss, nil
+}
+
+func ReadData(url string) ([]byte, error) {
+	var data []byte
+	var err error
+	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
+		c := &http.Client{
+			Timeout: 9 * time.Second,
+			Transport: &http.Transport{
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					h, p, err := net.SplitHostPort(addr)
+					if err != nil {
+						return nil, err
+					}
+					s, err := Resolve6(h)
+					if err == nil {
+						c, err := net.Dial(network, net.JoinHostPort(s, p))
+						if err == nil {
+							return c, nil
+						}
+					}
+					s, err = Resolve4(h)
+					if err == nil {
+						c, err := net.Dial(network, net.JoinHostPort(s, p))
+						if err == nil {
+							return c, nil
+						}
+					}
+					return nil, errors.New("Can not fetch " + addr)
+				},
+			},
+		}
+		r, err := c.Get(url)
+		if err != nil {
+			return nil, err
+		}
+		defer r.Body.Close()
+		data, err = ioutil.ReadAll(r.Body)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		data, err = ioutil.ReadFile(url)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return data, nil
 }

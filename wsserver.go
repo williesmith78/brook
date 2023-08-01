@@ -17,159 +17,57 @@ package brook
 import (
 	"context"
 	"crypto/tls"
-	"errors"
-	"log"
 	"net"
 	"net/http"
-	"strconv"
-	"sync"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	cache "github.com/patrickmn/go-cache"
 	"github.com/txthinking/brook/limits"
 	crypto1 "github.com/txthinking/crypto"
-	"github.com/txthinking/socks5"
 	"github.com/urfave/negroni"
 	"golang.org/x/crypto/acme/autocert"
 )
 
-// WSServer.
 type WSServer struct {
-	Password       []byte
-	Domain         string
-	TCPAddr        *net.TCPAddr
-	HTTPServer     *http.Server
-	HTTPSServer    *http.Server
-	TCPTimeout     int
-	UDPTimeout     int
-	Path           string
-	UDPSrc         *cache.Cache
-	BlockDomain    map[string]byte
-	BlockCIDR4     []*net.IPNet
-	BlockCIDR6     []*net.IPNet
-	BlockCache     *cache.Cache
-	BlockLock      *sync.RWMutex
-	Done           chan byte
-	WSSServerPort  int64
-	Cert           []byte
-	CertKey        []byte
-	WithoutBrook   bool
-	PasswordSha256 []byte
-	Dial           func(network, laddr, raddr string) (net.Conn, error)
+	Password      []byte
+	Domain        string
+	Addr          string
+	HTTPServer    *http.Server
+	TCPTimeout    int
+	UDPTimeout    int
+	Path          string
+	Cert          []byte
+	CertKey       []byte
+	WithoutBrook  bool
+	XForwardedFor bool
 }
 
-// NewWSServer.
-func NewWSServer(addr, password, domain, path string, tcpTimeout, udpTimeout int, blockDomainList, blockCIDR4List, blockCIDR6List string, updateListInterval int64) (*WSServer, error) {
-	var taddr *net.TCPAddr
-	var err error
-	if domain == "" {
-		taddr, err = net.ResolveTCPAddr("tcp", addr)
-		if err != nil {
-			return nil, err
-		}
-	}
-	var ds map[string]byte
-	if blockDomainList != "" {
-		ds, err = ReadDomainList(blockDomainList)
-		if err != nil {
-			return nil, err
-		}
-	}
-	var c4 []*net.IPNet
-	if blockCIDR4List != "" {
-		c4, err = ReadCIDRList(blockCIDR4List)
-		if err != nil {
-			return nil, err
-		}
-	}
-	var c6 []*net.IPNet
-	if blockCIDR6List != "" {
-		c6, err = ReadCIDRList(blockCIDR6List)
-		if err != nil {
-			return nil, err
-		}
-	}
-	cs2 := cache.New(cache.NoExpiration, cache.NoExpiration)
-	cs3 := cache.New(cache.NoExpiration, cache.NoExpiration)
-	var lock *sync.RWMutex
-	if updateListInterval != 0 {
-		lock = &sync.RWMutex{}
-	}
-	done := make(chan byte)
+func NewWSServer(addr, password, domain, path string, tcpTimeout, udpTimeout int, withoutbrook bool) (*WSServer, error) {
 	if err := limits.Raise(); err != nil {
-		log.Println("Try to raise system limits, got", err)
+		Log(Error{"when": "try to raise system limits", "warning": err.Error()})
 	}
-	b, err := crypto1.SHA256Bytes([]byte(password))
-	if err != nil {
-		return nil, err
+	p := []byte(password)
+	if withoutbrook {
+		var err error
+		p, err = crypto1.SHA256Bytes([]byte(password))
+		if err != nil {
+			return nil, err
+		}
 	}
 	s := &WSServer{
-		Password:       []byte(password),
-		Domain:         domain,
-		TCPAddr:        taddr,
-		TCPTimeout:     tcpTimeout,
-		UDPTimeout:     udpTimeout,
-		Path:           path,
-		UDPSrc:         cs2,
-		BlockDomain:    ds,
-		BlockCIDR4:     c4,
-		BlockCIDR6:     c6,
-		BlockCache:     cs3,
-		BlockLock:      lock,
-		Done:           done,
-		PasswordSha256: b,
-	}
-	if updateListInterval != 0 {
-		go func() {
-			ticker := time.NewTicker(time.Duration(updateListInterval) * time.Second)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-done:
-					return
-				case <-ticker.C:
-					var ds map[string]byte
-					if blockDomainList != "" {
-						ds, err = ReadDomainList(blockDomainList)
-						if err != nil {
-							log.Println("ReadDomainList", blockDomainList, err)
-							break
-						}
-					}
-					var c4 []*net.IPNet
-					if blockCIDR4List != "" {
-						c4, err = ReadCIDRList(blockCIDR4List)
-						if err != nil {
-							log.Println("ReadCIDRList", blockCIDR4List, err)
-							break
-						}
-					}
-					var c6 []*net.IPNet
-					if blockCIDR6List != "" {
-						c6, err = ReadCIDRList(blockCIDR6List)
-						if err != nil {
-							log.Println("ReadCIDRList", blockCIDR6List, err)
-							break
-						}
-					}
-					lock.Lock()
-					s.BlockDomain = ds
-					s.BlockCIDR4 = c4
-					s.BlockCIDR6 = c6
-					if cs3 != nil {
-						cs3.Flush()
-					}
-					lock.Unlock()
-				}
-			}
-		}()
+		Password:     p,
+		Addr:         addr,
+		Domain:       domain,
+		Path:         path,
+		TCPTimeout:   tcpTimeout,
+		UDPTimeout:   udpTimeout,
+		WithoutBrook: withoutbrook,
 	}
 	return s, nil
 }
 
-// Run server.
 func (s *WSServer) ListenAndServe() error {
 	r := mux.NewRouter()
 	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -180,9 +78,6 @@ func (s *WSServer) ListenAndServe() error {
 
 	n := negroni.New()
 	n.Use(negroni.NewRecovery())
-	if Debug {
-		n.Use(negroni.NewLogger())
-	}
 	n.UseFunc(func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 		w.Header().Set("Server", "nginx")
 		next(w, r)
@@ -191,7 +86,7 @@ func (s *WSServer) ListenAndServe() error {
 
 	if s.Domain == "" {
 		s.HTTPServer = &http.Server{
-			Addr:           s.TCPAddr.String(),
+			Addr:           s.Addr,
 			ReadTimeout:    5 * time.Second,
 			WriteTimeout:   10 * time.Second,
 			IdleTimeout:    120 * time.Second,
@@ -209,33 +104,38 @@ func (s *WSServer) ListenAndServe() error {
 			Email:      "cloud@txthinking.com",
 		}
 		go func() {
-			log.Println(http.ListenAndServe(":80", m.HTTPHandler(nil)))
+			err := http.ListenAndServe(":80", m.HTTPHandler(nil))
+			if err != nil {
+				Log(err)
+			}
 		}()
-		t = &tls.Config{GetCertificate: m.GetCertificate}
+		t = &tls.Config{GetCertificate: m.GetCertificate, ServerName: s.Domain, NextProtos: []string{"http/1.1"}}
 	}
 	if s.Cert != nil && s.CertKey != nil {
 		ct, err := tls.X509KeyPair(s.Cert, s.CertKey)
 		if err != nil {
 			return err
 		}
-		t = &tls.Config{Certificates: []tls.Certificate{ct}, ServerName: s.Domain}
+		t = &tls.Config{Certificates: []tls.Certificate{ct}, ServerName: s.Domain, NextProtos: []string{"http/1.1"}}
 	}
-	s.HTTPSServer = &http.Server{
-		Addr:         ":" + strconv.FormatInt(s.WSSServerPort, 10),
+	s.HTTPServer = &http.Server{
+		Addr:         s.Addr,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 		Handler:      n,
 		TLSConfig:    t,
 	}
-	go func() {
-		time.Sleep(1 * time.Second)
-		c := &http.Client{
-			Timeout: 10 * time.Second,
-		}
-		_, _ = c.Get("https://" + s.Domain + s.Path)
-	}()
-	return s.HTTPSServer.ListenAndServeTLS("", "")
+	if s.Cert == nil || s.CertKey == nil {
+		go func() {
+			time.Sleep(1 * time.Second)
+			c := &http.Client{
+				Timeout: 10 * time.Second,
+			}
+			_, _ = c.Get("https://" + s.Domain + s.Addr)
+		}()
+	}
+	return s.HTTPServer.ListenAndServeTLS("", "")
 }
 
 var upgrader = websocket.Upgrader{
@@ -253,143 +153,68 @@ func (s *WSServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	c := conn.UnderlyingConn()
 	defer c.Close()
-	if s.TCPTimeout != 0 {
-		if err := c.SetDeadline(time.Now().Add(time.Duration(s.TCPTimeout) * time.Second)); err != nil {
-			log.Println(err)
-			return
+	from := c.RemoteAddr().String()
+	if s.XForwardedFor && r.Header.Get("X-Forwarded-For") != "" {
+		s1 := strings.Split(r.Header.Get("X-Forwarded-For"), ", ")[0]
+		h, _, err := net.SplitHostPort(s1)
+		if err != nil {
+			h = s1
+		}
+		if net.ParseIP(h) != nil {
+			_, p, err := net.SplitHostPort(from)
+			if err == nil {
+				from = net.JoinHostPort(h, p)
+			}
 		}
 	}
-	b := s.Password
-	if s.WithoutBrook {
-		b = s.PasswordSha256
+	var ss Exchanger
+	if !s.WithoutBrook {
+		ss, err = NewStreamServer(s.Password, from, c, s.TCPTimeout, s.UDPTimeout)
 	}
-	ss, dst, err := MakeStreamServer(b, c, s.TCPTimeout, s.WithoutBrook)
+	if s.WithoutBrook {
+		ss, err = NewSimpleStreamServer(s.Password, from, c, s.TCPTimeout, s.UDPTimeout)
+	}
 	if err != nil {
-		log.Println(err)
+		Log(Error{"from": from, "error": err.Error()})
 		return
 	}
 	defer ss.Clean()
-	if ss.NetworkName() == "tcp" {
-		if err := s.TCPHandle(ss, dst); err != nil {
-			log.Println(err)
+	if ss.Network() == "tcp" {
+		if err := s.TCPHandle(ss); err != nil {
+			Log(Error{"from": from, "dst": ss.Dst(), "error": err.Error()})
 		}
 	}
-	if ss.NetworkName() == "udp" {
-		ss.SetTimeout(s.UDPTimeout)
-		if err := s.UDPHandle(ss, c.RemoteAddr().String(), dst); err != nil {
-			log.Println(err)
+	if ss.Network() == "udp" {
+		if err := s.UDPHandle(ss); err != nil {
+			Log(Error{"from": from, "dst": ss.Dst(), "error": err.Error()})
 		}
 	}
 }
 
-// TCPHandle handles request.
-func (s *WSServer) TCPHandle(ss Exchanger, dst []byte) error {
-	address := socks5.ToAddress(dst[0], dst[1:len(dst)-2], dst[len(dst)-2:])
-	if Debug {
-		log.Println("dial tcp", address)
-	}
-	var ds map[string]byte
-	var c4 []*net.IPNet
-	var c6 []*net.IPNet
-	if s.BlockLock != nil {
-		s.BlockLock.RLock()
-	}
-	ds = s.BlockDomain
-	c4 = s.BlockCIDR4
-	c6 = s.BlockCIDR6
-	if s.BlockLock != nil {
-		s.BlockLock.RUnlock()
-	}
-	if BlockAddress(address, ds, c4, c6, s.BlockCache) {
-		return errors.New("block " + address)
-	}
-	var rc net.Conn
-	var err error
-	if s.Dial == nil {
-		rc, err = Dial.Dial("tcp", address)
-	}
-	if s.Dial != nil {
-		rc, err = s.Dial("tcp", "", address)
-	}
+func (s *WSServer) TCPHandle(ss Exchanger) error {
+	rc, err := DialTCP("tcp", "", ss.Dst())
 	if err != nil {
 		return err
 	}
 	defer rc.Close()
-	if s.TCPTimeout != 0 {
-		if err := rc.SetDeadline(time.Now().Add(time.Duration(s.TCPTimeout) * time.Second)); err != nil {
-			return err
-		}
-	}
 	if err := ss.Exchange(rc); err != nil {
 		return nil
 	}
 	return nil
 }
 
-// UDPHandle handles packet.
-func (s *WSServer) UDPHandle(ss Exchanger, src string, dstb []byte) error {
-	dst := socks5.ToAddress(dstb[0], dstb[1:len(dstb)-2], dstb[len(dstb)-2:])
-	if Debug {
-		log.Println("dial udp", dst)
-	}
-	var ds map[string]byte
-	var c4 []*net.IPNet
-	var c6 []*net.IPNet
-	if s.BlockLock != nil {
-		s.BlockLock.RLock()
-	}
-	ds = s.BlockDomain
-	c4 = s.BlockCIDR4
-	c6 = s.BlockCIDR6
-	if s.BlockLock != nil {
-		s.BlockLock.RUnlock()
-	}
-	if BlockAddress(dst, ds, c4, c6, s.BlockCache) {
-		return errors.New("block " + dst)
-	}
-	var laddr *net.UDPAddr
-	any, ok := s.UDPSrc.Get(src + dst)
-	if ok {
-		laddr = any.(*net.UDPAddr)
-	}
-	raddr, err := net.ResolveUDPAddr("udp", dst)
-	if err != nil {
-		return err
-	}
-	var rc net.Conn
-	if s.Dial == nil {
-		rc, err = Dial.DialUDP("udp", laddr, raddr)
-	}
-	if s.Dial != nil {
-		la := ""
-		if laddr != nil {
-			la = laddr.String()
-		}
-		rc, err = s.Dial("udp", la, dst)
-	}
+func (s *WSServer) UDPHandle(ss Exchanger) error {
+	rc, err := NATDial("udp", ss.Src(), ss.Dst(), ss.Dst())
 	if err != nil {
 		return err
 	}
 	defer rc.Close()
-	if s.UDPTimeout != 0 {
-		if err := rc.SetDeadline(time.Now().Add(time.Duration(s.UDPTimeout) * time.Second)); err != nil {
-			return err
-		}
-	}
-	if laddr == nil {
-		s.UDPSrc.Set(src+dst, rc.LocalAddr().(*net.UDPAddr), -1)
-	}
 	if err := ss.Exchange(rc); err != nil {
 		return nil
 	}
 	return nil
 }
 
-// Shutdown server.
 func (s *WSServer) Shutdown() error {
-	close(s.Done)
-	if s.Domain == "" {
-		return s.HTTPServer.Shutdown(context.Background())
-	}
-	return s.HTTPSServer.Shutdown(context.Background())
+	return s.HTTPServer.Shutdown(context.Background())
 }

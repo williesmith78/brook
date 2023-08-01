@@ -17,7 +17,6 @@ package brook
 import (
 	"bytes"
 	"errors"
-	"log"
 	"net"
 	"time"
 
@@ -26,16 +25,23 @@ import (
 )
 
 type Socks5ToHTTP struct {
-	Addr           *net.TCPAddr
-	Socks5Address  string
-	Socks5Username string
-	Socks5Password string
-	Dial           proxy.Dialer
-	TCPTimeout     int
-	Listen         *net.TCPListener
+	Addr       string
+	Dial       proxy.Dialer
+	TCPTimeout int
+	Listen     *net.TCPListener
+}
+
+type _pd struct {
+}
+
+func (p *_pd) Dial(network, addr string) (c net.Conn, err error) {
+	return DialTCP(network, "", addr)
 }
 
 func NewSocks5ToHTTP(addr, socks5addr, socks5username, socks5password string, tcpTimeout int) (*Socks5ToHTTP, error) {
+	if err := limits.Raise(); err != nil {
+		Log(Error{"when": "try to raise system limits", "warning": err.Error()})
+	}
 	var auth *proxy.Auth
 	if socks5username != "" || socks5password != "" {
 		auth = &proxy.Auth{
@@ -43,29 +49,23 @@ func NewSocks5ToHTTP(addr, socks5addr, socks5username, socks5password string, tc
 			Password: socks5password,
 		}
 	}
-	dial, err := proxy.SOCKS5("tcp", socks5addr, auth, Dial)
+	dial, err := proxy.SOCKS5("tcp", socks5addr, auth, &_pd{})
 	if err != nil {
 		return nil, err
-	}
-	ta, err := net.ResolveTCPAddr("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-	if err := limits.Raise(); err != nil {
-		log.Println("Try to raise system limits, got", err)
 	}
 	return &Socks5ToHTTP{
-		Addr:           ta,
-		Socks5Address:  socks5addr,
-		Socks5Username: socks5username,
-		Socks5Password: socks5password,
-		Dial:           dial,
-		TCPTimeout:     tcpTimeout,
+		Addr:       addr,
+		Dial:       dial,
+		TCPTimeout: tcpTimeout,
 	}, nil
 }
 
 func (s *Socks5ToHTTP) ListenAndServe() error {
-	l, err := net.ListenTCP("tcp", s.Addr)
+	addr, err := net.ResolveTCPAddr("tcp", s.Addr)
+	if err != nil {
+		return err
+	}
+	l, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		return err
 	}
@@ -80,12 +80,12 @@ func (s *Socks5ToHTTP) ListenAndServe() error {
 			defer c.Close()
 			if s.TCPTimeout != 0 {
 				if err := c.SetDeadline(time.Now().Add(time.Duration(s.TCPTimeout) * time.Second)); err != nil {
-					log.Println(err)
+					Log(err)
 					return
 				}
 			}
 			if err := s.Handle(c); err != nil {
-				log.Println(err)
+				Log(err)
 				return
 			}
 		}(c)
@@ -126,9 +126,6 @@ func (s *Socks5ToHTTP) Handle(c *net.TCPConn) error {
 		}
 	}
 
-	if Debug {
-		log.Println("dial http", addr)
-	}
 	tmp, err := s.Dial.Dial("tcp", addr)
 	if err != nil {
 		return err
